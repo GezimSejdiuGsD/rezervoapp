@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import Link from 'next/link'; // Import Link for navigation
+import Link from 'next/link';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -58,22 +58,36 @@ export default function Login() {
         <h1 className="text-2xl font-black text-center mb-6 text-gray-900">Kyçu në Panel</h1>
         
         <form onSubmit={handleLogin} className="space-y-4">
-          <input 
-            type="email" 
-            placeholder="Email" 
-            className="input-field" 
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required 
-          />
-          <input 
-            type="password" 
-            placeholder="Fjalëkalimi" 
-            className="input-field" 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required 
-          />
+          <div>
+            <input 
+              type="email" 
+              placeholder="Email" 
+              className="input-field" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required 
+            />
+          </div>
+          
+          <div className="relative">
+            <input 
+              type="password" 
+              placeholder="Fjalëkalimi" 
+              className="input-field" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required 
+            />
+            {/* --- FORGOT PASSWORD BUTTON --- */}
+            <div className="flex justify-end mt-2 px-1">
+              <Link 
+                href="/forgot-password" 
+                className="text-[11px] font-bold text-blue-600 hover:text-blue-800 uppercase tracking-tighter transition"
+              >
+                Harruat fjalëkalimin?
+              </Link>
+            </div>
+          </div>
           
           <button 
             disabled={loading}
@@ -83,7 +97,6 @@ export default function Login() {
           </button>
         </form>
 
-        {/* --- REGISTER SECTION --- */}
         <div className="mt-8 pt-6 border-t border-gray-50 text-center">
           <p className="text-gray-400 text-xs font-bold uppercase tracking-tighter mb-3">Nuk keni llogari?</p>
           <Link 
@@ -94,7 +107,6 @@ export default function Login() {
           </Link>
         </div>
 
-        {/* RESEND SECTION */}
         {needsVerification && (
           <div className="mt-6 p-4 bg-amber-50 border border-amber-100 rounded-2xl text-center animate-in fade-in zoom-in duration-200">
             <p className="text-amber-700 text-xs font-bold mb-3">
@@ -102,6 +114,7 @@ export default function Login() {
             </p>
             <button 
               onClick={handleResendEmail}
+              type="button"
               disabled={resendLoading}
               className="text-amber-800 text-xs font-black underline uppercase hover:text-amber-900"
             >

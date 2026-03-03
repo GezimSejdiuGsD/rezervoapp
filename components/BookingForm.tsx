@@ -122,6 +122,7 @@ export default function BookingForm({
     const { error } = await supabase
       .from('appointments')
       .insert([{
+        business_id: businessId,
         service_id: formData.serviceId,
         client_name: formData.name,
         client_phone: formData.phone,

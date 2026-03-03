@@ -38,12 +38,6 @@ export default function DashboardNav() {
         })}
       </div>
 
-      <button 
-        onClick={handleSignOut}
-        className="px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg transition"
-      >
-        Dalja (Sign Out)
-      </button>
     </nav>
   );
 }

@@ -6,9 +6,29 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 const locationData: Record<string, string[]> = {
-  "Kosovë": ["Prishtinë", "Prizren", "Pejë", "Gjilan", "Gjakovë", "Mitrovicë", "Ferizaj"],
-  "Shqipëri": ["Tiranë", "Durrës", "Vlorë", "Shkodër", "Fier", "Korçë", "Elbasan"],
-  "Maqedoni e Veriut": ["Shkup", "Tetovë", "Gostivar", "Kumanovë", "Strugë", "Ohër"]
+  "Kosovë": [
+    "Prishtinë", "Prizren", "Pejë", "Gjilan", "Gjakovë", "Mitrovicë", "Ferizaj", 
+    "Vushtrri", "Podujevë", "Rahovec", "Fushë Kosovë", "Suharekë", "Kaçanik", 
+    "Shtime", "Lipjan", "Obiliq", "Gllogoc (Drenas)", "Istog", "Klinë", "Skënderaj", 
+    "Dragash", "Leposaviq", "Zveçan", "Zubin Potok", 
+    "Junik", "Hani i Elezit", "Graçanicë", "Ranillug", "Partesh", "Kllokot", 
+    "Malishevë", "Novobërdë", "Shtërpcë", "Viti", "Deçan", "Kamenicë"
+  ],
+  "Shqipëri": [
+    "Tiranë", "Durrës", "Vlorë", "Shkodër", "Fier", "Korçë", "Elbasan", "Berat", 
+    "Lushnjë", "Kavajë", "Pogradec", "Laç", "Gjirokastër", "Patos", "Krujë", 
+    "Kuçovë", "Kukës", "Lezhë", "Sarandë", "Peshkopi", "Burrel", "Cërrik", 
+    "Çorovodë", "Shijak", "Librazhd", "Tepelenë", "Gramsh", "Poliçan", "Bulqizë", 
+    "Përmet", "Fushë-Arrëz", "Bajram Curri", "Rrëshen", "Koplik", "Peqin", 
+    "Bilisht", "Krumë", "Libohovë", "Konispol", "Vorë", "Kamëz", "Himarë"
+  ],
+  "Maqedoni e Veriut": [
+    "Shkup", "Tetovë", "Gostivar", "Kumanovë", "Strugë", "Ohër", "Prilep", 
+    "Manastir (Bitola)", "Veles", "Shtip", "Strumicë", "Kavadar", "Kërçovë", 
+    "Kriva Pallankë", "Radovish", "Gjevgjeli", "Dibër", "Sveti Nikollë", 
+    "Probishtip", "Vinicë", "Dellçevë", "Resnjë", "Berovë", "Kratovë", 
+    "Bogdancë", "Krushevë", "Makedonska Kamenica", "Vallandovë", "Demir Kapi", "Demir Hisar"
+  ]
 };
 
 export default function Register() {
@@ -20,7 +40,7 @@ export default function Register() {
   const [formData, setFormData] = useState({
     business_name: '',
     slug: '',
-    whatsapp_number: '',
+    phone_number: '',
     country: 'Kosovë',
     city: '',
     email: '',
@@ -73,30 +93,24 @@ export default function Register() {
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
+      options: {
+        // THIS IS WHAT THE SQL TRIGGER LOOKS AT:
+        data: {
+          business_name: formData.business_name,
+          slug: formData.slug.toLowerCase(),
+          phone_number: formData.phone_number,
+          country: formData.country,
+          city: formData.city
+        },
+        emailRedirectTo: `${window.location.origin}/auth/callback`
+      }
     });
 
     if (authError) {
-      alert(authError.message);
+      alert("Gabim: " + authError.message);
     } else if (authData.user) {
-      const { error: profileError } = await supabase.from('profiles').insert([
-        {
-          id: authData.user.id,
-          business_name: formData.business_name,
-          slug: formData.slug.toLowerCase(),
-          whatsapp_number: formData.whatsapp_number,
-          start_time: formData.start_time,
-          end_time: formData.end_time,
-          slot_duration: formData.slot_duration,
-          closed_days: formData.closed_days
-        }
-      ]);
-
-      if (profileError) {
-        alert("Gabim në profil: " + profileError.message);
-      } else {
-        alert("Rregjistrimi u krye! Kontrolloni email-in për verifikim.");
-        router.push('/login');
-      }
+      alert("Llogaria u krijua me sukses! Kontrolloni email-in tuaj për verifikim.");
+      router.push('/login');
     }
     setLoading(false);
   };
@@ -147,7 +161,7 @@ export default function Register() {
             <div className="md:col-span-2">
               <label className="label-style">Numri i Telefonit (WhatsApp)</label>
               <input type="tel" placeholder="+383 49 123 456" required className="input-field" 
-                onChange={e => setFormData({...formData, whatsapp_number: e.target.value})} />
+                onChange={e => setFormData({...formData, phone_number: e.target.value})} />
             </div>
 
             {/* Country/City */}
