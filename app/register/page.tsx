@@ -64,25 +64,40 @@ export default function Register() {
   const isPasswordValid = checks.length && checks.uppercase && checks.number && checks.symbol;
   const canSubmit = isPasswordValid && checks.match && slugStatus === 'available' && !loading;
 
-  useEffect(() => {
-    const checkSlug = async () => {
-      if (formData.slug.length < 3) {
-        setSlugStatus('idle');
-        return;
-      }
-      setSlugStatus('checking');
-      const { data } = await supabase
-        .from('profiles')
-        .select('slug')
-        .eq('slug', formData.slug.toLowerCase())
-        .single();
-      
-      setSlugStatus(data ? 'taken' : 'available');
-    };
+  // --- SLUG REALTIME CHECK ---
+useEffect(() => {
+  const checkSlug = async () => {
+    // If slug is too short, don't even check
+    if (formData.slug.length < 3) {
+      setSlugStatus('idle');
+      return;
+    }
 
-    const timeoutId = setTimeout(checkSlug, 500);
-    return () => clearTimeout(timeoutId);
-  }, [formData.slug]);
+    setSlugStatus('checking');
+
+    // Query Supabase for this specific slug
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('slug')
+      .eq('slug', formData.slug.toLowerCase())
+      .maybeSingle(); // maybeSingle returns null instead of an error if not found
+
+    if (error) {
+      console.error("Error checking slug:", error.message);
+      setSlugStatus('idle');
+      return;
+    }
+
+    // If data exists, the slug is taken
+    setSlugStatus(data ? 'taken' : 'available');
+  };
+
+  // Debounce: Wait 500ms after the user stops typing to call the DB
+  const timeoutId = setTimeout(checkSlug, 500);
+  
+  // Cleanup the timeout if the user types again before 500ms
+  return () => clearTimeout(timeoutId);
+}, [formData.slug]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,27 +148,40 @@ export default function Register() {
                 onChange={e => setFormData({...formData, business_name: e.target.value})} />
             </div>
 
-            {/* Slug */}
+           {/* Slug */}
             <div className="md:col-span-2 relative">
-              <div className="flex items-center gap-1 ml-2 mb-1">
+              <div className="flex items-center justify-between ml-2 mb-1">
                 <label className="label-style !mb-0">Linku Unik (Slug)</label>
-                <div className="relative">
-                   <button type="button" onMouseEnter={() => setShowTooltip(true)} onMouseLeave={() => setShowTooltip(false)} className="text-gray-300">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" /></svg>
-                   </button>
-                   {showTooltip && (
-                     <div className="absolute z-10 left-6 -top-2 w-48 bg-gray-800 text-white text-[10px] p-2 rounded-lg shadow-xl font-medium">
-                       Ky link do të përdoret nga klientët tuaj për rezervime online.
-                     </div>
-                   )}
-                </div>
+                
+                {/* Status Indicator */}
+                {slugStatus === 'checking' && <span className="text-[10px] text-blue-500 font-bold animate-pulse uppercase">Duke kontrolluar...</span>}
+                {slugStatus === 'available' && <span className="text-[10px] text-green-500 font-bold uppercase">✓ I lirë</span>}
+                {slugStatus === 'taken' && <span className="text-[10px] text-red-500 font-bold uppercase">✗ Ky link është i zënë</span>}
               </div>
-              <input type="text" placeholder="psh: barber-dali" required 
-                className={`input-field lowercase ${slugStatus === 'taken' ? 'border-red-500' : ''}`} 
-                onChange={e => setFormData({...formData, slug: e.target.value.replace(/\s+/g, '-').toLowerCase()})} 
+
+              <input 
+                type="text" 
+                placeholder="psh: barber_kosove" 
+                required 
+                className={`input-field lowercase transition-all ${
+                  slugStatus === 'taken' ? 'border-red-500 bg-red-50' : 
+                  slugStatus === 'available' ? 'border-green-500 bg-green-50' : ''
+                }`} 
+                value={formData.slug}
+                onChange={e => {
+                  // Auto-replace spaces with hyphens and remove special characters
+                  const formattedSlug = e.target.value
+                    .toLowerCase()
+                    .replace(/\s+/g, '-')
+                    .replace(/[^a-z0-9-]/g, '');
+                  setFormData({...formData, slug: formattedSlug});
+                }} 
               />
+              
               <p className="text-[11px] font-bold text-gray-400 mt-1 ml-2">
-                URL: <span className="text-blue-500 font-mono">rezervo.com/{formData.slug || '...'}</span>
+                URL: <span className={`${slugStatus === 'taken' ? 'text-red-500' : 'text-blue-500'} font-mono`}>
+                  rezervo.com/{formData.slug || '...'}
+                </span>
               </p>
             </div>
 
@@ -240,7 +268,7 @@ export default function Register() {
         .label-style {
           font-size: 0.7rem;
           font-weight: 800;
-          color: #9ca3af;
+          color: #6b7280;
           text-transform: uppercase;
           margin-left: 0.5rem;
           margin-bottom: 0.25rem;
@@ -252,10 +280,12 @@ export default function Register() {
           border-radius: 1rem;
           border: 1px solid #f1f1f1;
           outline: none;
-          font-size: 0.875rem;
+          font-size: 1rem;
           font-weight: 600;
-          background-color: #fbfbfb;
+          background-color: #ffffff; /* Use pure white to avoid mobile tinting */
+          color: #111827; /* Force text to be very dark gray/black */
           transition: all 0.2s ease-in-out;
+          appearance: none; /* Fixes iOS default styling */
         }
         .input-field:focus {
           border-color: #2563eb;
