@@ -24,7 +24,7 @@ export default function SubscriptionTab({ profile }: { profile: any }) {
       <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
-            <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter">Statusi i Pajtimit</h2>
+            <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter">Statusi i Abonimit</h2>
             <p className="text-gray-500 font-bold text-xs uppercase tracking-widest mt-1">Menaxho planet dhe faturimin</p>
           </div>
           <div className={`px-6 py-2 rounded-2xl font-black text-xs uppercase tracking-widest ${isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>

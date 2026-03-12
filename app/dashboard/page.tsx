@@ -171,7 +171,7 @@ export default function Dashboard() {
               activeTab === 'subscription' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-400 hover:text-gray-600'
             }`}
           >
-            Pajtimi & Plani
+            ABONIMI
           </button>
         </div>
 
@@ -189,7 +189,7 @@ export default function Dashboard() {
                   
                   <div className="mt-6 flex items-center gap-2 bg-white/10 p-2 pl-4 rounded-2xl border border-white/10 backdrop-blur-md">
                     <code className="text-sm font-bold tracking-tight truncate flex-1">
-                      rezervo.app/{profile?.slug}
+                      rezervo.shop/{profile?.slug}
                     </code>
                     <button 
                       onClick={() => {

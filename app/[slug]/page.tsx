@@ -45,11 +45,11 @@ export default async function BusinessPage({ params }: Props) {
             Profil Jo-Aktiv
           </h1>
           <p className="text-gray-500 font-medium leading-relaxed mb-8">
-            Ky biznes nuk mund të pranojë rezervime për momentin për shkak të pajtimit të skaduar.
+            Ky biznes nuk mund të pranojë rezervime për momentin për shkak se nuk është aktiv.
           </p>
           <div className="pt-6 border-t border-gray-50">
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-              Rezervo.app Platform
+              Rezervo.shop Platform
             </p>
           </div>
         </div>
@@ -97,7 +97,7 @@ export default async function BusinessPage({ params }: Props) {
       {/* Footer Branding */}
       <div className="mt-16 text-center">
         <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em]">
-          Powered by <span className="text-blue-600">Rezervo.app</span>
+          Powered by <span className="text-blue-600">rezervo.shop</span>
         </p>
       </div>
     </main>

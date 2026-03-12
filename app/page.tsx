@@ -99,7 +99,7 @@ export default function HomePage() {
           <span className="text-blue-600">që të duhet.</span>
         </h1>
         <p className="max-w-2xl mx-auto text-gray-500 text-lg font-bold leading-relaxed mb-12">
-          Rezervo.app ndihmon bizneset të automatizojnë takimet dhe të rrisin fitimet. Gjeni dhe rezervoni te bizneset më të mira në qytetin tuaj.
+          rezervo.shop ndihmon bizneset të automatizojnë takimet dhe të rrisin fitimet. Gjeni dhe rezervoni te bizneset më të mira në qytetin tuaj.
         </p>
       </section>
 
@@ -177,7 +177,7 @@ export default function HomePage() {
             <FeatureCard 
               icon={<Zap className="text-amber-500" size={32} />}
               title="Linku Juaj Personal"
-              desc="Përfitoni një faqe unike si rezervo.app/emri-juaj për ta shpërndarë në Instagram."
+              desc="Përfitoni një faqe unike si rezervo.shop/emri-juaj për ta shpërndarë në Instagram."
             />
             <FeatureCard 
               icon={<ShieldCheck className="text-green-500" size={32} />}
@@ -207,7 +207,7 @@ export default function HomePage() {
             <Link href="/privacy" className="hover:text-white">Privatësia</Link>
             <Link href="/contact" className="hover:text-white">Kontakti</Link>
           </div>
-          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">© 26/02/2026 Rezervo.app. Të gjitha të drejtat e rezervuara.</p>
+          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">© 26/02/2026 rezervo.shop. Të gjitha të drejtat e rezervuara.</p>
         </div>
       </footer>
     </div>

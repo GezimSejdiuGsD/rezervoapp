@@ -49,8 +49,33 @@ export default function Register() {
     start_time: '10:00',
     end_time: '19:00',
     slot_duration: 30,
-    closed_days: [0] 
+    closed_days: [0],
+    services: [{ name: '', price: '' }] 
   });
+
+  // --- SERVICE HELPERS ---
+  const addService = () => {
+    setFormData({
+      ...formData,
+      services: [...formData.services, { name: '', price: '' }]
+    });
+  };
+
+  const updateService = (index: number, field: 'name' | 'price', value: string) => {
+    const newServices = [...formData.services];
+    // @ts-ignore
+    newServices[index][field] = value;
+    setFormData({ ...formData, services: newServices });
+  };
+
+  const removeService = (index: number) => {
+    if (formData.services.length > 1) {
+      setFormData({
+        ...formData,
+        services: formData.services.filter((_, i) => i !== index)
+      });
+    }
+  };
 
   // Password Validation Logic
   const checks = {
@@ -65,39 +90,29 @@ export default function Register() {
   const canSubmit = isPasswordValid && checks.match && slugStatus === 'available' && !loading;
 
   // --- SLUG REALTIME CHECK ---
-useEffect(() => {
-  const checkSlug = async () => {
-    // If slug is too short, don't even check
-    if (formData.slug.length < 3) {
-      setSlugStatus('idle');
-      return;
-    }
+  useEffect(() => {
+    const checkSlug = async () => {
+      if (formData.slug.length < 3) {
+        setSlugStatus('idle');
+        return;
+      }
+      setSlugStatus('checking');
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('slug')
+        .eq('slug', formData.slug.toLowerCase())
+        .maybeSingle();
 
-    setSlugStatus('checking');
-
-    // Query Supabase for this specific slug
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('slug')
-      .eq('slug', formData.slug.toLowerCase())
-      .maybeSingle(); // maybeSingle returns null instead of an error if not found
-
-    if (error) {
-      console.error("Error checking slug:", error.message);
-      setSlugStatus('idle');
-      return;
-    }
-
-    // If data exists, the slug is taken
-    setSlugStatus(data ? 'taken' : 'available');
-  };
-
-  // Debounce: Wait 500ms after the user stops typing to call the DB
-  const timeoutId = setTimeout(checkSlug, 500);
-  
-  // Cleanup the timeout if the user types again before 500ms
-  return () => clearTimeout(timeoutId);
-}, [formData.slug]);
+      if (error) {
+        console.error("Error checking slug:", error.message);
+        setSlugStatus('idle');
+        return;
+      }
+      setSlugStatus(data ? 'taken' : 'available');
+    };
+    const timeoutId = setTimeout(checkSlug, 500);
+    return () => clearTimeout(timeoutId);
+  }, [formData.slug]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,7 +124,6 @@ useEffect(() => {
       email: formData.email,
       password: formData.password,
       options: {
-        // THIS IS WHAT THE SQL TRIGGER LOOKS AT:
         data: {
           business_name: formData.business_name,
           slug: formData.slug.toLowerCase(),
@@ -124,6 +138,23 @@ useEffect(() => {
     if (authError) {
       alert("Gabim: " + authError.message);
     } else if (authData.user) {
+      // --- SAVE SERVICES ---
+      const servicesToInsert = formData.services
+        .filter(s => s.name.trim() !== '')
+        .map(s => ({
+          profile_id: authData.user?.id,
+          name: s.name,
+          price: parseFloat(s.price) || 0
+        }));
+
+      if (servicesToInsert.length > 0) {
+        const { error: servicesError } = await supabase
+          .from('services')
+          .insert(servicesToInsert);
+        
+        if (servicesError) console.error("Error saving services:", servicesError);
+      }
+
       alert("Llogaria u krijua me sukses! Kontrolloni email-in tuaj për verifikim.");
       router.push('/login');
     }
@@ -152,13 +183,10 @@ useEffect(() => {
             <div className="md:col-span-2 relative">
               <div className="flex items-center justify-between ml-2 mb-1">
                 <label className="label-style !mb-0">Linku Unik (Slug)</label>
-                
-                {/* Status Indicator */}
                 {slugStatus === 'checking' && <span className="text-[10px] text-blue-500 font-bold animate-pulse uppercase">Duke kontrolluar...</span>}
                 {slugStatus === 'available' && <span className="text-[10px] text-green-500 font-bold uppercase">✓ I lirë</span>}
                 {slugStatus === 'taken' && <span className="text-[10px] text-red-500 font-bold uppercase">✗ Ky link është i zënë</span>}
               </div>
-
               <input 
                 type="text" 
                 placeholder="psh: barber_kosove" 
@@ -169,15 +197,13 @@ useEffect(() => {
                 }`} 
                 value={formData.slug}
                 onChange={e => {
-                  // Auto-replace spaces with hyphens and remove special characters
                   const formattedSlug = e.target.value
                     .toLowerCase()
-                    .replace(/\s+/g, '-')
-                    .replace(/[^a-z0-9-]/g, '');
+                    .replace(/\s+/g, '-')       // Turn spaces into hyphens
+                    .replace(/[^a-z0-9\-_]/g, ''); // Allow letters, numbers, hyphens, and underscores
                   setFormData({...formData, slug: formattedSlug});
-                }} 
+                }}
               />
-              
               <p className="text-[11px] font-bold text-gray-400 mt-1 ml-2">
                 URL: <span className={`${slugStatus === 'taken' ? 'text-red-500' : 'text-blue-500'} font-mono`}>
                   rezervo.com/{formData.slug || '...'}
@@ -207,6 +233,53 @@ useEffect(() => {
               </select>
             </div>
 
+            {/* --- ADDED SERVICES SECTION --- */}
+            <div className="md:col-span-2 mt-4">
+              <label className="label-style">Shërbimet & Çmimet</label>
+              <div className="space-y-3">
+                {formData.services.map((service, index) => (
+                  <div key={index} className="flex gap-2 items-start">
+                    <div className="flex-grow">
+                      <input 
+                        type="text" 
+                        placeholder="Emri i shërbimit (psh: Vizitë dentare, prerje flokësh etj)" 
+                        className="input-field" 
+                        required
+                        value={service.name}
+                        onChange={e => updateService(index, 'name', e.target.value)}
+                      />
+                    </div>
+                    <div className="w-28">
+                      <input 
+                        type="number" 
+                        placeholder="Çmimi" 
+                        className="input-field" 
+                        required
+                        value={service.price}
+                        onChange={e => updateService(index, 'price', e.target.value)}
+                      />
+                    </div>
+                    {formData.services.length > 1 && (
+                      <button 
+                        type="button" 
+                        onClick={() => removeService(index)}
+                        className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition mt-0.5"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button 
+                type="button" 
+                onClick={addService}
+                className="mt-3 ml-2 text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline"
+              >
+                + Shto shërbim tjetër
+              </button>
+            </div>
+
             {/* Auth */}
             <div className="md:col-span-2">
               <label className="label-style">Email-i</label>
@@ -230,7 +303,6 @@ useEffect(() => {
                 </div>
               </div>
 
-              {/* Validation Checklist */}
               <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 grid grid-cols-2 gap-2">
                 <p className={`text-[10px] font-bold flex items-center gap-1 ${checks.length ? 'text-green-500' : 'text-gray-400'}`}>
                   {checks.length ? '✓' : '○'} 8+ Karaktere
@@ -282,10 +354,10 @@ useEffect(() => {
           outline: none;
           font-size: 1rem;
           font-weight: 600;
-          background-color: #ffffff; /* Use pure white to avoid mobile tinting */
-          color: #111827; /* Force text to be very dark gray/black */
+          background-color: #ffffff;
+          color: #111827;
           transition: all 0.2s ease-in-out;
-          appearance: none; /* Fixes iOS default styling */
+          appearance: none;
         }
         .input-field:focus {
           border-color: #2563eb;
