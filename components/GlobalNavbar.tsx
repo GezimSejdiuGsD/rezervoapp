@@ -66,7 +66,7 @@ export default function GlobalNavbar() {
           {/* Left Side */}
           <div className="flex items-center gap-8">
             <Link href="/dashboard" className="text-xl font-black tracking-tighter text-blue-600">
-              REZERVO<span className="text-gray-900">.APP</span>
+              REZERVO<span className="text-gray-900">.SHOP</span>
             </Link>
             
             <div className="hidden md:flex items-center gap-1">

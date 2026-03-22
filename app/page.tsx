@@ -79,7 +79,7 @@ export default function HomePage() {
       {/* 1. NAVIGATION */}
       <nav className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
         <div className="text-2xl font-black tracking-tighter text-blue-600">
-          REZERVO<span className="text-gray-900">.APP</span>
+          REZERVO<span className="text-gray-900">.SHOP</span>
         </div>
         <div className="flex items-center gap-8">
           <Link href="/login" className="text-sm font-black uppercase tracking-widest text-gray-500 hover:text-blue-600 transition">Kyqu</Link>
@@ -201,7 +201,7 @@ export default function HomePage() {
       {/* 6. FOOTER */}
       <footer className="bg-gray-900 text-white py-20">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-10">
-          <div className="text-2xl font-black tracking-tighter">REZERVO<span className="text-blue-500">.APP</span></div>
+          <div className="text-2xl font-black tracking-tighter">REZERVO<span className="text-blue-500">.SHOP</span></div>
           <div className="flex gap-8 text-[10px] font-black uppercase tracking-widest text-gray-400">
             <Link href="/terms" className="hover:text-white">Kushtet</Link>
             <Link href="/privacy" className="hover:text-white">Privatësia</Link>

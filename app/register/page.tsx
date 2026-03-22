@@ -164,7 +164,11 @@ export default function Register() {
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="bg-white max-w-xl w-full rounded-[2rem] shadow-2xl p-8 border border-gray-100 my-10">
+        
         <div className="text-center mb-8">
+          <Link href="/dashboard" className="text-xl font-black tracking-tighter text-blue-600 ">
+              REZERVO<span className="text-gray-900">.SHOP</span>
+          </Link>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Krijo Llogarinë</h1>
           <p className="text-gray-500 mt-2 font-medium">Plotësoni të dhënat për biznesin tuaj</p>
         </div>
@@ -182,7 +186,7 @@ export default function Register() {
            {/* Slug */}
             <div className="md:col-span-2 relative">
               <div className="flex items-center justify-between ml-2 mb-1">
-                <label className="label-style !mb-0">Linku Unik (Slug)</label>
+                <label className="label-style !mb-0">Linku Unik i biznesit</label>
                 {slugStatus === 'checking' && <span className="text-[10px] text-blue-500 font-bold animate-pulse uppercase">Duke kontrolluar...</span>}
                 {slugStatus === 'available' && <span className="text-[10px] text-green-500 font-bold uppercase">✓ I lirë</span>}
                 {slugStatus === 'taken' && <span className="text-[10px] text-red-500 font-bold uppercase">✗ Ky link është i zënë</span>}
@@ -206,7 +210,7 @@ export default function Register() {
               />
               <p className="text-[11px] font-bold text-gray-400 mt-1 ml-2">
                 URL: <span className={`${slugStatus === 'taken' ? 'text-red-500' : 'text-blue-500'} font-mono`}>
-                  rezervo.com/{formData.slug || '...'}
+                  rezervo.shop/{formData.slug || '...'}
                 </span>
               </p>
             </div>
