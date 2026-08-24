@@ -85,11 +85,13 @@ export default async function BusinessPage({ params }: Props) {
           <BookingForm 
             key={`${profile.id}-${profile.slot_duration}`} 
             businessId={profile.id} 
+            businessName={profile.business_name || ''} 
+            businessPhone={profile.phone_number || ''} 
             services={services || []} 
             startTime={profile.start_time}
             endTime={profile.end_time}
-            slotDuration={Number(profile.slot_duration)}
-            closedDays={profile.closed_days || []}
+            slotDuration={profile.slot_duration}
+            closedDays={profile.closed_days}
           />
         </div>
       </div>
