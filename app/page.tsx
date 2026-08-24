@@ -42,9 +42,8 @@ export default function HomePage() {
     async function fetchPublicBusinesses() {
       setLoading(true);
       const { data, error } = await supabase
-        .from('profiles')
+        .from('public_business_profiles')
         .select('business_name, slug, city, country, phone_number')
-        .neq('role', 'admin')
         .neq('slug', '')
         .not('slug', 'is', null);
       

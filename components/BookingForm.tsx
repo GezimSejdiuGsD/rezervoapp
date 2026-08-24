@@ -12,6 +12,8 @@ interface Service {
 
 interface BookingFormProps {
   businessId: string;
+  businessName: string;
+  businessPhone: string;
   services: Service[];
   startTime: string; 
   endTime: string; 
@@ -21,6 +23,8 @@ interface BookingFormProps {
 
 export default function BookingForm({ 
   businessId, 
+  businessName,
+  businessPhone,
   services, 
   startTime, 
   endTime, 
@@ -30,6 +34,8 @@ export default function BookingForm({
   
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [notificationSent, setNotificationSent] = useState(false);
+  const [notificationError, setNotificationError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedSlot, setSelectedSlot] = useState('');
   const [dayException, setDayException] = useState<{is_closed: boolean, start: string, end: string} | null>(null);
@@ -134,16 +140,40 @@ export default function BookingForm({
       else alert("Gabim: " + error.message);
       setLoading(false);
     } else {
-      // 1. Prepare message
-      const message = `Përshëndetje! Unë jam ${formData.name}. Sapo bëra një rezervim:%0A%0A🗓 Data: ${selectedDate}%0A⏰ Ora: ${selectedSlot}%0A💇 Shërbimi: ${selectedService?.name}`;
-      const whatsappUrl = `https://wa.me/?text=${message}`;
-      
-      // 2. Set submitted first (so they see the success screen if they come back)
+      const smsPayload = {
+        to: businessPhone,
+        clientName: formData.name,
+        clientPhone: formData.phone,
+        date: selectedDate,
+        time: selectedSlot,
+        serviceName: selectedService?.name || '',
+        businessName,
+      };
+
+      try {
+        const notificationResponse = await fetch('/api/notifications/sent', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(smsPayload),
+        });
+
+        if (notificationResponse.ok) {
+          setNotificationSent(true);
+        } else {
+          const json = await notificationResponse.json().catch(() => null);
+          const msg = typeof json?.error === 'string'
+            ? json.error
+            : JSON.stringify(json) || notificationResponse.statusText || 'Unknown error';
+          setNotificationError(msg);
+        }
+      } catch (sendError) {
+        console.error('Error sending Sent SMS notification:', sendError);
+      }
+
       setSubmitted(true);
       setLoading(false);
-
-      // 3. Attempt to open WhatsApp
-      window.open(whatsappUrl, '_blank');
     }
   };
 
@@ -154,15 +184,13 @@ export default function BookingForm({
         <p className="text-green-700 text-sm mb-6">
           Termini juaj është regjistruar në sistemin tonë.
         </p>
-        
-        {/* Fallback button if the popup was blocked */}
-        <a 
-          href={`https://wa.me/?text=Konfirmim për rezervimin tim në datë ${selectedDate}`}
-          target="_blank"
-          className="inline-block bg-green-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:bg-green-700 transition mb-4"
-        >
-          Dërgo njoftimin në WhatsApp
-        </a>
+        {notificationSent ? (
+          <p className="text-green-700 text-sm mb-6">SMS njoftimi u dërgua te biznesi.</p>
+        ) : notificationError ? (
+          <p className="text-red-600 text-sm mb-6">SMS dështoi: {notificationError}</p>
+        ) : (
+          <p className="text-yellow-700 text-sm mb-6">Po dërgohet njoftimi në SMS te biznesi...</p>
+        )}
 
         <button onClick={() => window.location.reload()} className="block mx-auto mt-4 text-gray-500 text-xs underline">
           Kthehu prapa

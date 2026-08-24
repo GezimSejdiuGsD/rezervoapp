@@ -201,7 +201,7 @@ export default function SettingsPage() {
                   className="w-full p-4 border border-gray-100 rounded-2xl bg-gray-50 font-black outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
                   onChange={(e) => setProfile({...profile, slot_duration: parseInt(e.target.value)})}
                 >
-                  {[15, 30, 45, 60].map(m => <option key={m} value={m}>{m} minuta</option>)}
+                  {[15, 20, 30, 45, 60].map(m => <option key={m} value={m}>{m} minuta</option>)}
                 </select>
               </div>
 
