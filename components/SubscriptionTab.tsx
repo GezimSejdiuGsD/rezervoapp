@@ -20,6 +20,20 @@ const AGENTAOS_PLANS = {
 export default function SubscriptionTab({ profile }: { profile: any }) {
   const [selectedPlan, setSelectedPlan] = useState<"mujore" | "vjetore">("mujore");
 
+  // Check both active status and that subscription_end is in the future
+  const isSubscriptionActive =
+    profile?.subscription_status === "active" &&
+    profile?.subscription_end &&
+    new Date(profile.subscription_end) > new Date();
+
+  const formattedEndDate = profile?.subscription_end
+    ? new Date(profile.subscription_end).toLocaleDateString("sq-AL", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
+    : null;
+
   const handleRenew = () => {
     const plan = AGENTAOS_PLANS[selectedPlan];
     const checkoutUrl = new URL(plan.checkoutUrl);
@@ -37,8 +51,17 @@ export default function SubscriptionTab({ profile }: { profile: any }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 max-w-2xl">
       <div className="mb-6">
-        <span className="inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-blue-50 text-blue-600 mb-2">
-          Statusi: {profile?.subscription_status === "active" ? "Aktiv" : "Jo Aktiv"}
+        <span
+          className={`inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider mb-2 ${
+            isSubscriptionActive
+              ? "bg-green-50 text-green-600"
+              : "bg-red-50 text-red-600"
+          }`}
+        >
+          Statusi:{" "}
+          {isSubscriptionActive
+            ? `Aktiv (deri më ${formattedEndDate})`
+            : "Jo Aktiv / I Skaduar"}
         </span>
         <h2 className="text-xl font-black uppercase tracking-tight text-gray-900">
           Abonimi i Biznesit

@@ -7,7 +7,6 @@ interface Props {
 }
 
 export default async function BusinessPage({ params }: Props) {
-  
   // 1. Unwrap the URL parameters
   const { slug } = await params;
 
@@ -26,13 +25,13 @@ export default async function BusinessPage({ params }: Props) {
 
   // 3. SUBSCRIPTION LOGIC CHECK
   // A business is active ONLY if status is 'active' AND the end date is in the future
-  const isSubscribed = 
-    profile.subscription_status === 'active' && 
-    profile.subscription_end && 
+  const isSubscriptionActive =
+    profile.subscription_status === 'active' &&
+    profile.subscription_end &&
     new Date(profile.subscription_end) > new Date();
 
   // If not subscribed, show the "Inactive" screen instead of the booking form
-  if (!isSubscribed) {
+  if (!isSubscriptionActive) {
     return (
       <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="max-w-md w-full bg-white p-10 rounded-[2.5rem] shadow-xl border border-gray-100 text-center">
