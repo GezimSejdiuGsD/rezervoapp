@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, CreditCard, ShieldCheck } from "lucide-react";
+import { Check, CreditCard, ShieldCheck, Info } from "lucide-react";
 
 const AGENTAOS_PLANS = {
   mujore: {
@@ -102,6 +102,18 @@ export default function SubscriptionTab({ profile }: { profile: any }) {
           );
         })}
       </div>
+
+      {/* Email Match Notice */}
+      {profile?.email && (
+        <div className="mb-4 p-3.5 rounded-xl bg-amber-50 border border-amber-200/80 flex items-start gap-2.5 text-xs text-amber-900">
+          <Info size={16} className="text-amber-600 shrink-0 mt-0.5" />
+          <p className="leading-relaxed">
+            Për aktivizim automatik të menjëhershëm, sigurohuni që në faqen e
+            pagesës të vendosni email-in e llogarisë tuaj:{" "}
+            <span className="font-bold underline">{profile.email}</span>
+          </p>
+        </div>
+      )}
 
       {/* Rinovoni Tani Button */}
       <button
