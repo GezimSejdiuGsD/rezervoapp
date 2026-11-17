@@ -1,26 +1,56 @@
 "use client";
 
-import { useState } from "react";
-import { Check, CreditCard, ShieldCheck, Info } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import {
+  Check,
+  CreditCard,
+  ShieldCheck,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  X,
+} from "lucide-react";
 
 const AGENTAOS_PLANS = {
   mujore: {
     name: "Mujore",
     price: "€15 / muaj",
-    checkoutUrl: "https://app.agentaos.ai/pay/o2fni3QSPCzrSLw9w1IMkw",
   },
   vjetore: {
     name: "Vjetore",
     price: "€140 / vit",
-    // Replace with your Vjetore link once created in AgentaOS
-    checkoutUrl: "https://app.agentaos.ai/pay/o2fni3QSPCzrSLw9w1IMkw",
   },
 };
 
 export default function SubscriptionTab({ profile }: { profile: any }) {
   const [selectedPlan, setSelectedPlan] = useState<"mujore" | "vjetore">("mujore");
+  const [loading, setLoading] = useState(false);
+  const [paymentBanner, setPaymentBanner] = useState<"success" | "canceled" | null>(
+    null
+  );
 
-  // Check both active status and that subscription_end is in the future
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Detect return from AgentaOS checkout (?payment=success or ?payment=canceled)
+  useEffect(() => {
+    const paymentStatus = searchParams.get("payment");
+    if (paymentStatus === "success" || paymentStatus === "canceled") {
+      setPaymentBanner(paymentStatus);
+
+      // Refresh server data so updated subscription_end shows immediately
+      if (paymentStatus === "success") {
+        router.refresh();
+      }
+
+      // Clean the query parameter from the URL without reloading
+      const url = new URL(window.location.href);
+      url.searchParams.delete("payment");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [searchParams, router]);
+
   const isSubscriptionActive =
     profile?.subscription_status === "active" &&
     profile?.subscription_end &&
@@ -34,22 +64,88 @@ export default function SubscriptionTab({ profile }: { profile: any }) {
       })
     : null;
 
-  const handleRenew = () => {
-    const plan = AGENTAOS_PLANS[selectedPlan];
-    const checkoutUrl = new URL(plan.checkoutUrl);
+  const handleRenew = async () => {
+    if (!profile?.id) return;
+    setLoading(true);
 
-    if (profile?.email) {
-      checkoutUrl.searchParams.set("email", profile.email);
-    }
-    if (profile?.id) {
-      checkoutUrl.searchParams.set("client_reference_id", profile.id);
-    }
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profileId: profile.id,
+          email: profile.email,
+          plan: selectedPlan,
+        }),
+      });
 
-    window.location.href = checkoutUrl.toString();
+      const data = await res.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || "Gabim gjatë hapjes së pagesës.");
+        setLoading(false);
+      }
+    } catch {
+      alert("Gabim në lidhje me serverin.");
+      setLoading(false);
+    }
   };
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 max-w-2xl">
+      {/* Return Status Banner */}
+      {paymentBanner === "success" && (
+        <div className="mb-6 p-4 rounded-xl bg-green-50 border border-green-200 flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 size={20} className="text-green-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-black text-green-900">
+                Pagesa u krye me sukses!
+              </p>
+              <p className="text-xs text-green-700 mt-0.5">
+                Abonimi i biznesit tuaj është aktivizuar. Nëse data nuk
+                përditësohet menjëherë, rifreskoni faqen pas pak sekondash.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPaymentBanner(null)}
+            className="text-green-600 hover:text-green-800 cursor-pointer"
+            aria-label="Mbyll"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {paymentBanner === "canceled" && (
+        <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <XCircle size={20} className="text-red-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-black text-red-900">
+                Pagesa nuk u përfundua
+              </p>
+              <p className="text-xs text-red-700 mt-0.5">
+                Transaksioni u anulua ose dështoi. Mund të provoni përsëri kur
+                të jeni gati.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPaymentBanner(null)}
+            className="text-red-600 hover:text-red-800 cursor-pointer"
+            aria-label="Mbyll"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       <div className="mb-6">
         <span
           className={`inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider mb-2 ${
@@ -103,26 +199,21 @@ export default function SubscriptionTab({ profile }: { profile: any }) {
         })}
       </div>
 
-      {/* Email Match Notice */}
-      {profile?.email && (
-        <div className="mb-4 p-3.5 rounded-xl bg-amber-50 border border-amber-200/80 flex items-start gap-2.5 text-xs text-amber-900">
-          <Info size={16} className="text-amber-600 shrink-0 mt-0.5" />
-          <p className="leading-relaxed">
-            Për aktivizim automatik të menjëhershëm, sigurohuni që në faqen e
-            pagesës të vendosni email-in e llogarisë tuaj:{" "}
-            <span className="font-bold underline">{profile.email}</span>
-          </p>
-        </div>
-      )}
-
       {/* Rinovoni Tani Button */}
       <button
         type="button"
         onClick={handleRenew}
-        className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs uppercase tracking-widest transition flex items-center justify-center gap-2 cursor-pointer"
+        disabled={loading}
+        className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-xl font-black text-xs uppercase tracking-widest transition flex items-center justify-center gap-2 cursor-pointer"
       >
-        <CreditCard size={16} />
-        Rinovoni Tani ({AGENTAOS_PLANS[selectedPlan].name})
+        {loading ? (
+          <Loader2 size={16} className="animate-spin" />
+        ) : (
+          <CreditCard size={16} />
+        )}
+        {loading
+          ? "Duke hapur pagesën..."
+          : `Rinovoni Tani (${AGENTAOS_PLANS[selectedPlan].name})`}
       </button>
 
       <p className="mt-4 text-xs text-gray-400 flex items-center justify-center gap-1.5 font-medium">

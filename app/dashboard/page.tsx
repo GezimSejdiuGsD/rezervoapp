@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import GlobalNavbar from '@/components/GlobalNavbar';
 import DashboardNav from '@/components/DashboardNav';
 import SubscriptionTab from '@/components/SubscriptionTab'; // New Import
+import { Suspense } from "react";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Share2, ExternalLink, Copy } from 'lucide-react';
@@ -326,7 +327,9 @@ export default function Dashboard() {
           </>
         ) : (
           /* --- THIS SHOWS WHEN THE NEW TAB IS CLICKED --- */
-          <SubscriptionTab profile={profile} />
+          <Suspense fallback={<div className="p-6 text-sm text-gray-400">Duke ngarkuar...</div>}>
+            <SubscriptionTab profile={profile} />
+          </Suspense>
         )}
       </div>
 
