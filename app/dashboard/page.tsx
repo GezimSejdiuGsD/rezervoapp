@@ -1,19 +1,19 @@
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import GlobalNavbar from '@/components/GlobalNavbar';
 import DashboardNav from '@/components/DashboardNav';
-import SubscriptionTab from '@/components/SubscriptionTab'; // New Import
-import { Suspense } from "react";
+import SubscriptionTab from '@/components/SubscriptionTab';
+import AdminTab from '@/components/AdminTab';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Share2, ExternalLink, Copy } from 'lucide-react';
 
 export default function Dashboard() {
-  // --- NEW STATES FOR SUBSCRIPTION ---
-  const [activeTab, setActiveTab] = useState<'appointments' | 'subscription'>('appointments');
+  // --- STATES FOR TABS & PROFILE ---
+  const [activeTab, setActiveTab] = useState<'appointments' | 'subscription' | 'admin'>('appointments');
   const [profile, setProfile] = useState<any>(null);
 
   // --- ALL YOUR ORIGINAL STATES KEPT EXACTLY AS THEY WERE ---
@@ -120,7 +120,7 @@ export default function Dashboard() {
         return;
       }
 
-      // FETCH PROFILE (Needed for the Subscription Tab)
+      // FETCH PROFILE (Needed for Subscription & Admin Tabs)
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
@@ -156,7 +156,7 @@ export default function Dashboard() {
       <div className="max-w-5xl mx-auto px-4 pb-8">
         <DashboardNav />
 
-        {/* --- ADDED TAB NAVIGATION HERE --- */}
+        {/* --- TAB NAVIGATION --- */}
         <div className="flex gap-8 mb-8 border-b border-gray-200">
           <button 
             onClick={() => setActiveTab('appointments')}
@@ -174,12 +174,22 @@ export default function Dashboard() {
           >
             ABONIMI
           </button>
+          {profile?.role === 'admin' && (
+            <button 
+              onClick={() => setActiveTab('admin')}
+              className={`pb-4 font-black text-xs uppercase tracking-widest transition-all ${
+                activeTab === 'admin' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              ADMIN
+            </button>
+          )}
         </div>
 
         {loading ? (
           <p className="text-center py-20 text-gray-400 font-black animate-pulse uppercase tracking-widest">Ngarkimi...</p>
         ) : activeTab === 'appointments' ? (
-          /* --- EVERYTHING BELOW IS YOUR ORIGINAL UNTOUCHED UI --- */
+          /* --- APPOINTMENTS TAB --- */
           <>
             {/* --- ADDED SHARE CARD START --- */}
             <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-[2.5rem] p-8 mb-8 text-white shadow-2xl shadow-blue-200 relative overflow-hidden">
@@ -325,12 +335,15 @@ export default function Dashboard() {
               {filteredAppointments.length === 0 && <div className="p-12 text-center text-gray-400 font-bold italic text-sm">Nuk u gjet asnjë rezervim.</div>}
             </div>
           </>
-        ) : (
-          /* --- THIS SHOWS WHEN THE NEW TAB IS CLICKED --- */
+        ) : activeTab === 'subscription' ? (
+          /* --- SUBSCRIPTION TAB --- */
           <Suspense fallback={<div className="p-6 text-sm text-gray-400">Duke ngarkuar...</div>}>
             <SubscriptionTab profile={profile} />
           </Suspense>
-        )}
+        ) : activeTab === 'admin' && profile?.role === 'admin' ? (
+          /* --- ADMIN TAB --- */
+          <AdminTab currentRole={profile.role} />
+        ) : null}
       </div>
 
       {/* Cancellation Modal - Kept Original */}
