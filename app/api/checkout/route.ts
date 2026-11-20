@@ -8,13 +8,11 @@ const PLANS = {
     name: "Abonim Mujor - Rezervo",
     amount: 15,
     currency: "EUR",
-    interval: "month" as const,
   },
   vjetore: {
     name: "Abonim Vjetor - Rezervo",
     amount: 140,
     currency: "EUR",
-    interval: "year" as const,
   },
 };
 
@@ -30,37 +28,49 @@ export async function POST(req: Request) {
     }
 
     const selected = PLANS[plan as keyof typeof PLANS];
-    const origin = req.headers.get("origin") || "https://rezervo.shop";
+    
+    // Explicitly use your production domain as the base URL to prevent missing/localhost header issues
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://rezervo.shop";
+    const successUrl = `${baseUrl}/dashboard?payment=success`;
+    const cancelUrl = `${baseUrl}/dashboard?payment=canceled`;
 
-    // Create a checkout session with profileId locked into metadata
     const session = await agentaos.checkouts.create({
       amount: selected.amount,
       currency: selected.currency,
-      name: selected.name,
-      customerEmail: email || undefined,
-      successUrl: `${origin}/dashboard?payment=success`,
-      cancelUrl: `${origin}/dashboard?payment=canceled`,
+      description: selected.name,
+      buyerEmail: email || undefined,
+      successUrl,
+      cancelUrl,
       metadata: {
         profileId,
         plan,
       },
     } as any);
 
-    const checkoutUrl = (session as any).url || (session as any).checkoutUrl;
+    const checkoutUrl =
+      (session as any).url ||
+      (session as any).checkoutUrl ||
+      (session as any).checkout_url;
 
     if (!checkoutUrl) {
       return NextResponse.json(
-        { error: "AgentaOS did not return a checkout URL", session },
+        { error: "No checkout URL returned from AgentaOS", session },
         { status: 500 }
       );
     }
 
     return NextResponse.json({ url: checkoutUrl }, { status: 200 });
   } catch (err: any) {
-    console.error("Checkout creation error:", err);
+    console.error(
+      "AgentaOS Checkout Error:",
+      JSON.stringify(err?.errors || err?.response?.data || err, null, 2)
+    );
     return NextResponse.json(
-      { error: err.message || "Failed to create checkout session" },
-      { status: 500 }
+      {
+        error: err?.message || "Failed to create checkout session",
+        details: err?.errors || err?.response?.data || null,
+      },
+      { status: err?.status || 400 }
     );
   }
 }

@@ -9,9 +9,6 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// Replace with your Vjetore payment link ID once created
-const YEARLY_LINK_ID = "YOUR_VJETORE_LINK_ID";
-
 export async function POST(req: Request) {
   let rawBody = "";
   let event: any = null;
@@ -45,84 +42,62 @@ export async function POST(req: Request) {
       return NextResponse.json({ received: true, test: true }, { status: 200 });
     }
 
-    // Extract email from AgentaOS's exact fields (camelCase from SDK + snake_case fallback)
-    const customerEmail = (
-      data.buyerEmail ||
-      data.buyer_email ||
-      data.metadata?.payer?.email ||
-      data.customerEmail ||
-      data.customer_email ||
-      data.email ||
-      ""
-    )
-      .trim()
-      .toLowerCase();
+    const customerEmail =
+      data.buyerEmail || data.buyer_email || data.metadata?.payer?.email || null;
 
+    // Extract profileId directly from checkout metadata
     const profileId =
-      data.clientReferenceId ||
-      data.client_reference_id ||
       data.metadata?.profileId ||
       data.metadata?.profile_id ||
+      data.clientReferenceId ||
       null;
 
-    const linkId = data.linkId || data.link_id || null;
+    const planLabel = data.metadata?.plan === "vjetore" ? "Vjetore" : "Mujore";
+    const daysToAdd = data.metadata?.plan === "vjetore" ? 365 : 30;
     const amount = data.amount != null ? Number(data.amount) : null;
     const currency = (data.currency || "EUR").toUpperCase();
 
-    // Determine if Yearly or Monthly using linkId or amount
-    const isYearly =
-      (linkId && linkId === YEARLY_LINK_ID) ||
-      (amount !== null && amount >= 100);
-    const planLabel = isYearly ? "Vjetore" : "Mujore";
-    const daysToAdd = isYearly ? 365 : 30;
-
-    // Only activate on checkout.session.completed or subscription.renewed
-    // (Prevents double-counting when both subscription.created and checkout.session.completed fire together)
     if (
       eventType === "checkout.session.completed" ||
       eventType === "subscription.renewed"
     ) {
-      let query = supabaseAdmin
-        .from("profiles")
-        .select("id, email, subscription_end");
-
-      if (profileId) {
-        query = query.eq("id", profileId);
-      } else if (customerEmail) {
-        query = query.ilike("email", customerEmail);
-      } else {
+      if (!profileId) {
         await supabaseAdmin.from("payments").insert({
-          customer_email: customerEmail || null,
+          customer_email: customerEmail,
           event_type: eventType,
           plan_name: planLabel,
           amount,
           currency,
           status: "unmatched_user",
-          error_message: "No buyerEmail or profileId in payload",
+          error_message: "Missing profileId in metadata",
           raw_payload: event,
         });
         return NextResponse.json({ received: true }, { status: 200 });
       }
 
-      const { data: profile, error: fetchError } = await query.maybeSingle();
+      // Fetch profile directly by ID
+      const { data: profile, error: fetchError } = await supabaseAdmin
+        .from("profiles")
+        .select("id, subscription_end")
+        .eq("id", profileId)
+        .maybeSingle();
 
       if (fetchError || !profile) {
         await supabaseAdmin.from("payments").insert({
-          customer_email: customerEmail || null,
+          profile_id: profileId,
+          customer_email: customerEmail,
           event_type: eventType,
           plan_name: planLabel,
           amount,
           currency,
           status: "unmatched_user",
-          error_message:
-            fetchError?.message ||
-            `No profile matched email: ${customerEmail}`,
+          error_message: fetchError?.message || `No profile found with id: ${profileId}`,
           raw_payload: event,
         });
         return NextResponse.json({ received: true }, { status: 200 });
       }
 
-      // Extend from current end date if active, otherwise from now
+      // Calculate new subscription end date
       const now = new Date();
       const currentEnd = profile.subscription_end
         ? new Date(profile.subscription_end)
@@ -132,11 +107,16 @@ export async function POST(req: Request) {
       const newEndDate = new Date(baseDate);
       newEndDate.setDate(newEndDate.getDate() + daysToAdd);
 
+      // Update profile status and expiration
       const { error: updateError } = await supabaseAdmin
         .from("profiles")
         .update({
           subscription_status: "active",
           subscription_end: newEndDate.toISOString(),
+          subscription_end_date: newEndDate.toISOString(),
+          subscription_plan: planLabel.toLowerCase(), // "mujore" or "vjetore"
+          plan_type: planLabel.toLowerCase(),
+          updated_at: new Date().toISOString(),
         })
         .eq("id", profile.id);
 
@@ -152,12 +132,10 @@ export async function POST(req: Request) {
           error_message: updateError.message,
           raw_payload: event,
         });
-        return NextResponse.json(
-          { error: updateError.message },
-          { status: 500 }
-        );
+        return NextResponse.json({ error: updateError.message }, { status: 500 });
       }
 
+      // Log successful payment
       await supabaseAdmin.from("payments").insert({
         profile_id: profile.id,
         customer_email: customerEmail,
@@ -172,48 +150,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ received: true }, { status: 200 });
     }
 
-    // Handle cancellation / expiration
-    if (
-      eventType === "subscription.canceled" ||
-      eventType === "subscription.deleted" ||
-      eventType === "subscription.expired"
-    ) {
-      let matchedProfileId = profileId;
-
-      if (profileId || customerEmail) {
-        const { data: updatedProfile } = profileId
-          ? await supabaseAdmin
-              .from("profiles")
-              .update({ subscription_status: "inactive" })
-              .eq("id", profileId)
-              .select("id")
-              .maybeSingle()
-          : await supabaseAdmin
-              .from("profiles")
-              .update({ subscription_status: "inactive" })
-              .ilike("email", customerEmail)
-              .select("id")
-              .maybeSingle();
-
-        matchedProfileId = updatedProfile?.id || profileId;
-      }
-
-      await supabaseAdmin.from("payments").insert({
-        profile_id: matchedProfileId,
-        customer_email: customerEmail || null,
-        event_type: eventType,
-        plan_name: planLabel,
-        status: "canceled",
-        raw_payload: event,
-      });
-
-      return NextResponse.json({ received: true }, { status: 200 });
-    }
-
-    // Log subscription.created and other informational events without double-adding days
+    // Log other events
     await supabaseAdmin.from("payments").insert({
       profile_id: profileId,
-      customer_email: customerEmail || null,
+      customer_email: customerEmail,
       event_type: eventType,
       plan_name: planLabel,
       amount,
